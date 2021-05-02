@@ -150,10 +150,7 @@ appEvent s (VtyEvent (Vty.EvKey Vty.KEsc [])) = halt s
 appEvent s (VtyEvent (Vty.EvKey (Vty.KChar ' ') [])) = case state of
   Exposed _ -> continue s
   Covered | not isMine -> continue $ s {display = explore s}
-  Covered | isMine -> continue $ s { display = imap2d
-                                      (\i j ->
-                                        if | (i, j) == (curRow, curCol) -> const Explosion
-                                           | otherwise -> id) (display s) }
+  Covered | isMine -> continue $ s { display = vModifyValue2d curRow curCol (const Explosion) (display s) }
   where
     cs = s ^. #cursor
     curRow = row cs
