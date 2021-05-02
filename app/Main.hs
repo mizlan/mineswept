@@ -113,7 +113,8 @@ numSurrounding l g = length $ filter isMine $ filter isValid $ nub $ applyTransf
       _ -> False
 
 imap2d :: (Int -> Int -> a -> a) -> Vector (Vector a) -> Vector (Vector a)
-imap2d f = V.imap (\i v -> V.imap (\j e -> f i j e) v)
+imap2d f = V.imap (V.imap . f)
+-- Explicit: imap2d f = V.imap (\i v -> V.imap (\j e -> f i j e) v)
 
 vModifyValue2d :: Int -> Int -> (a -> a) -> Vector (Vector a) -> Vector (Vector a)
 vModifyValue2d i j f = imap2d (\a b -> if | (a, b) == (i, j) -> f
