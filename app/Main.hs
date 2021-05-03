@@ -4,11 +4,11 @@
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE MultiWayIf #-}
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE NoMonomorphismRestriction #-}
-{-# LANGUAGE MultiWayIf #-}
 
 module Main where
 
@@ -114,19 +114,24 @@ numSurrounding l g = length $ filter isMine $ filter isValid $ nub $ applyTransf
 
 imap2d :: (Int -> Int -> a -> a) -> Vector (Vector a) -> Vector (Vector a)
 imap2d f = V.imap (V.imap . f)
+
 -- Explicit: imap2d f = V.imap (\i v -> V.imap (\j e -> f i j e) v)
 
 vModifyValue2d :: Int -> Int -> (a -> a) -> Vector (Vector a) -> Vector (Vector a)
-vModifyValue2d i j f = imap2d (\a b -> if | (a, b) == (i, j) -> f
-                                          | otherwise        -> id)
+vModifyValue2d i j f =
+  imap2d
+    ( \a b ->
+        if  | (a, b) == (i, j) -> f
+            | otherwise -> id
+    )
 
 explore :: AppState -> Vector (Vector PosDisplay)
 explore (AppState int d (Cursor r c)) =
   let affectedPositions = search noVisit noRecurse (r, c) S.empty
    in imap2d
         ( \i j ->
-            if | not ((i, j) `S.member` affectedPositions) -> id
-               | otherwise -> const (Exposed (numSurrounding (i, j) int))
+            if  | not ((i, j) `S.member` affectedPositions) -> id
+                | otherwise -> const (Exposed (numSurrounding (i, j) int))
         )
         d
   where
@@ -151,8 +156,8 @@ appEvent s (VtyEvent (Vty.EvKey Vty.KEsc [])) = halt s
 appEvent s (VtyEvent (Vty.EvKey (Vty.KChar ' ') [])) = case state of
   Exposed _ -> continue s
   Covered | not isMine -> continue $ s {display = explore s}
-  Covered | isMine     -> halt $ s { display = vModifyValue2d curRow curCol (const Explosion) (display s) }
-  _                    -> continue s
+  Covered | isMine -> halt $ s {display = vModifyValue2d curRow curCol (const Explosion) (display s)}
+  _ -> continue s
   where
     cs = s ^. #cursor
     curRow = row cs
@@ -160,7 +165,7 @@ appEvent s (VtyEvent (Vty.EvKey (Vty.KChar ' ') [])) = case state of
     loc = internal s ! curRow ! curCol
     isMine = case loc of
       Mine -> True
-      _    -> False
+      _ -> False
     state = display s ! curRow ! curCol
 appEvent s@(AppState i d (Cursor r c)) (VtyEvent (Vty.EvKey k []))
   | k == Vty.KChar 'k' = continue $ updateCursor (subtract 1) id s
@@ -187,9 +192,9 @@ drawUI (AppState int disp (Cursor r c)) =
       <$> fmap (fmap (padLeftRight 1 . displayPos)) disp
 
 attrs =
-  [ ("current", bg blue)
-  , ("covered", fg green)
-  , ("num",     fg yellow)
+  [ ("current", bg blue),
+    ("covered", fg green),
+    ("num", fg yellow)
   ]
 
 app =
